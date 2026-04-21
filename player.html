@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KILL DILL</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --red: #e50914; --dark: #0a0a0a; --card-bg: #1f1f1f; --muted: #b3b3b3; --radius: 6px; }
+    body { background: var(--dark); color: #fff; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4%; height: 64px; background: #000;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .logo { font-size: 22px; font-weight: 700; color: var(--red); letter-spacing: 3px; }
+    .logo a { color: var(--red); display: flex; align-items: center; gap: 10px; }
+    .back { font-size: 20px; color: #fff; }
+
+    .player-wrapper { max-width: 1060px; margin: 28px auto; padding: 0 4%; }
+
+    .player-container {
+      width: 100%; aspect-ratio: 16/9;
+      background: #000; border-radius: 8px;
+      overflow: hidden; margin-bottom: 22px;
+      border: 1px solid #1f1f1f;
+    }
+    .player-container iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    .player-info { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 28px; }
+    .player-poster { width: 120px; flex-shrink: 0; }
+    .player-poster img { width: 100%; display: block; border-radius: 6px; }
+    .player-details { flex: 1; min-width: 200px; }
+    .player-details h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .meta span { background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 4px; font-size: 12px; color: var(--muted); }
+    .player-details p { font-size: 14px; color: #ccc; line-height: 1.7; margin-bottom: 16px; }
+    .action-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn-drive, .btn-netmirror {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-size: 14px; font-weight: 600; transition: background 0.2s; cursor: pointer; border: none;
+    }
+    .btn-drive { background: #222; color: #fff; border: 1px solid #333; }
+    .btn-drive:hover { background: #2a2a2a; }
+    .btn-netmirror { background: #1a3a5c; color: #60b4ff; border: 1px solid #1e4a7a; }
+    .btn-netmirror:hover { background: #1e4a7a; }
+
+    /* WATCH PARTY */
+    .party-section {
+      background: #111; border: 1px solid #222;
+      border-radius: 14px; padding: 24px; margin-bottom: 32px;
+    }
+    .party-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 0; }
+    .party-title { font-size: 18px; font-weight: 700; }
+    .party-subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    .btn-party {
+      background: var(--red); color: #fff; border: none;
+      padding: 12px 28px; border-radius: var(--radius);
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-party:hover { background: #c40812; }
+
+    /* NAME PICKER */
+    .name-picker { display: none; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+    .name-picker.show { display: flex; }
+    .name-btn {
+      flex: 1; min-width: 140px; padding: 18px 14px;
+      border-radius: 10px; border: 2px solid #2a2a2a;
+      background: #1a1a1a; color: #fff;
+      font-size: 24px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s; text-align: center;
+    }
+    .name-btn:hover { border-color: var(--red); transform: scale(1.03); }
+    .name-btn span { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 5px; }
+
+    /* STATUS */
+    .party-status {
+      display: none; align-items: center; gap: 12px;
+      background: #1a1a1a; border-radius: 8px; padding: 14px 18px; margin-top: 16px;
+    }
+    .party-status.show { display: flex; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #555; flex-shrink: 0; }
+    .status-dot.waiting { background: #f5a623; animation: pulse 1.5s infinite; }
+    .status-dot.connected { background: #4caf50; }
+    .status-text { font-size: 14px; color: #ccc; flex: 1; }
+
+    /* MEMBERS */
+    .party-members { display: none; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .party-members.show { display: flex; }
+    .member-tag {
+      padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;
+      background: #1a1a1a; border: 1px solid #333;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .member-tag.kill { border-color: #e50914; color: #ff6b6b; }
+    .member-tag.dill { border-color: #e91e8c; color: #ff69b4; }
+    .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; }
+
+    /* DAILY VIDEO CALL */
+    .call-container {
+      display: none; margin-top: 20px;
+      border-radius: 10px; overflow: hidden;
+      border: 1px solid #2a2a2a; background: #000;
+    }
+    .call-container.show { display: block; }
+    .call-container iframe { width: 100%; height: 420px; border: none; display: block; }
+
+    /* CHAT */
+    .chat-container {
+      display: none; margin-top: 16px;
+      background: #1a1a1a; border-radius: 10px;
+      border: 1px solid #2a2a2a; overflow: hidden;
+    }
+    .chat-container.show { display: block; }
+    .chat-messages {
+      height: 200px; overflow-y: auto; padding: 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg { font-size: 13px; line-height: 1.5; }
+    .chat-msg .sender { font-weight: 700; margin-right: 6px; }
+    .chat-msg.kill .sender { color: #ff6b6b; }
+    .chat-msg.dill .sender { color: #ff69b4; }
+    .chat-msg.system { color: var(--muted); font-style: italic; text-align: center; }
+    .chat-input-row {
+      display: flex; border-top: 1px solid #2a2a2a;
+    }
+    .chat-input {
+      flex: 1; background: transparent; border: none;
+      color: #fff; padding: 12px 14px; font-size: 14px; outline: none;
+    }
+    .chat-input::placeholder { color: #555; }
+    .chat-send {
+      background: var(--red); color: #fff; border: none;
+      padding: 0 18px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .chat-send:hover { background: #c40812; }
+
+    /* SYNC CONTROLS */
+    .sync-controls { display: none; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .sync-controls.show { display: flex; }
+    .btn-ctrl {
+      padding: 9px 18px; border-radius: var(--radius);
+      border: 1px solid #333; background: #1a1a1a;
+      color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-ctrl:hover { background: #2a2a2a; }
+    .btn-ctrl.danger { border-color: #e50914; color: #ff6b6b; }
+    .btn-ctrl.danger:hover { background: #2a1a1a; }
+    .btn-ctrl.netmirror-party { border-color: #1e4a7a; color: #60b4ff; background: #0d1f2d; }
+    .btn-ctrl.netmirror-party:hover { background: #1a3a5c; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; top: 80px; right: 20px; z-index: 9999;
+      background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
+      padding: 16px 20px; max-width: 300px; min-width: 250px;
+      transform: translateX(350px); transition: transform 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    .toast.show { transform: translateX(0); }
+    .toast-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .toast-msg { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .toast-actions { display: flex; gap: 8px; }
+    .toast-join { background: var(--red); color: #fff; border: none; padding: 7px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; flex: 1; }
+    .toast-dismiss { background: #333; color: #fff; border: none; padding: 7px 14px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .related-section { max-width: 1060px; margin: 20px auto; padding: 0 4%; }
+    .row-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #e5e5e5; }
+    .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .movie-card { background: var(--card-bg); border-radius: 4px; overflow: hidden; transition: transform 0.2s; display: block; }
+    .movie-card:hover { transform: scale(1.05); }
+    .card-thumb { position: relative; aspect-ratio: 2/3; overflow: hidden; background: #2a2a2a; }
+    .card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+    .movie-card:hover .card-overlay { opacity: 1; }
+    .play-circle { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; }
+    .play-circle span { font-size: 18px; color: #000; margin-left: 3px; }
+    .card-info { padding: 10px 12px 14px; }
+    .card-info h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-info p { font-size: 11px; color: var(--muted); }
+    footer { text-align: center; padding: 32px; font-size: 13px; color: #555; border-top: 1px solid #1a1a1a; margin-top: 40px; }
+
+    @media (max-width: 600px) {
+      .player-poster { display: none; }
+      .player-details h1 { font-size: 20px; }
+      .call-container iframe { height: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html"><span class="back">&#8592;</span> KILL DILL</a>
+    </div>
+  </nav>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toast-title">Watch Party!</div>
+    <div class="toast-msg" id="toast-msg">Someone wants to watch with you.</div>
+    <div class="toast-actions">
+      <button class="toast-join" onclick="joinFromToast()">Join Now</button>
+      <button class="toast-dismiss" onclick="hideToast()">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="player-wrapper">
+
+    <!-- VIDEO PLAYER -->
+    <div class="player-container">
+      <iframe id="video-frame" src="" allow="autoplay; fullscreen" allowfullscreen frameborder="0"></iframe>
+    </div>
+
+    <!-- MOVIE INFO -->
+    <div class="player-info">
+      <div class="player-poster">
+        <img id="player-poster" src="" alt="Poster">
+      </div>
+      <div class="player-details">
+        <h1 id="player-title">Loading...</h1>
+        <div class="meta">
+          <span id="player-year"></span>
+          <span id="player-genre"></span>
+          <span id="player-duration"></span>
+        </div>
+        <p id="player-desc"></p>
+        <div class="action-btns">
+          <a id="drive-link" href="#" target="_blank" class="btn-drive">&#9654; Open in Google Drive</a>
+          <a id="netmirror-link" href="#" target="_blank" class="btn-netmirror">🌐 Watch on NetMirror</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- WATCH PARTY -->
+    <div class="party-section">
+      <div class="party-header">
+        <div>
+          <div class="party-title">🎬 Watch Party</div>
+          <div class="party-subtitle">Voice · Video · Chat — watch together in real time</div>
+        </div>
+        <button class="btn-party" id="start-btn" onclick="startParty()">🎉 Start Watch Party</button>
+      </div>
+
+      <!-- NAME PICKER -->
+      <div class="name-picker" id="name-picker">
+        <button class="name-btn" onclick="pickName('KILL')">
+          🔪 KILL
+          <span>That's you</span>
+        </button>
+        <button class="name-btn" onclick="pickName('DILL')">
+          🩷 DILL
+          <span>That's her</span>
+        </button>
+      </div>
+
+      <!-- STATUS -->
+      <div class="party-status" id="party-status">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="status-text" id="status-text">Waiting...</div>
+      </div>
+
+      <!-- MEMBERS -->
+      <div class="party-members" id="party-members"></div>
+
+      <!-- VIDEO CALL -->
+      <div class="call-container" id="call-container">
+        <iframe id="call-frame" allow="camera; microphone; fullscreen; speaker; display-capture" src=""></iframe>
+      </div>
+
+      <!-- CHAT -->
+      <div class="chat-container" id="chat-container">
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-msg system">Chat starts when both join 💬</div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendChat()">
+          <button class="chat-send" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="sync-controls" id="sync-controls">
+        <button class="btn-ctrl netmirror-party" onclick="openNetmirrorParty()">🌐 Open NetMirror for Both</button>
+        <button class="btn-ctrl danger" onclick="leaveParty()">✕ Leave Party</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RELATED -->
+  <div class="related-section">
+    <h2 class="row-title">More Movies</h2>
+    <div class="movie-grid" id="related-grid"></div>
+  </div>
+
+  <footer>
+    <p>KILL DILL &copy; 2025 &nbsp;&mdash;&nbsp; Private use only</p>
+  </footer>
+
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    // ─── MOVIES DATA ───
+    const MOVIES = [
+      { id: 0, title: "About Time", description: "Like all the men in his family, Tim Lake possesses the power to travel in time. With the advice of his father, he uses his special ability to pursue his romantic interest, Mary.", year: 2013, genre: "Romance · Comedy · Drama", duration: "2h 3m", driveId: "1vJDfAg-yQZXQWEO--TbWBsTzfGFBK1bL", thumbnail: "images/about_time.jpg" },
+      { id: 1, title: "Before Sunrise", description: "A young man and woman meet on a train in Europe and agree to spend one evening together in Vienna. Their night together changes both of their lives forever.", year: 1995, genre: "Romance · Drama", duration: "1h 41m", driveId: "1XZbMisNWlZSYYRXriq96dt2U1RJjTUrW", thumbnail: "images/before_sunrise.jpg" },
+      { id: 2, title: "Before Sunset", description: "Nine years after their first meeting, Jesse and Celine reunite in Paris. As they walk through the city, they reconnect and realize their feelings never truly faded.", year: 2004, genre: "Romance · Drama", duration: "1h 20m", driveId: "15dy1SLC3eK8WtiGEHLsy5XTtR1SaEnuF", thumbnail: "images/before_sunset.jpg" },
+      { id: 3, title: "Before Midnight", description: "Jesse and Celine are now living together in Europe with their twin daughters. On holiday in Greece, they face the harsh realities of life and love in a long-term relationship.", year: 2013, genre: "Romance · Drama", duration: "1h 49m", driveId: "1NEoNmCro8dX9Zz-U2eJY3Pk00brmneV1", thumbnail: "images/before_midnight.jpg" },
+      { id: 4, title: "13 Going on 30", description: "After a humiliating party, a 13-year-old girl wakes up as a 30-year-old woman and must navigate adult life while rediscovering what truly matters.", year: 2004, genre: "Romance · Comedy", duration: "1h 37m", driveId: "1OlnSwFUYNM2EwtJFDo3FWlm4BkmMY8uU", thumbnail: "images/13going30.jpg" }
+    ];
+
+    const movieId = parseInt(new URLSearchParams(window.location.search).get('id')) || 0;
+    const movie = MOVIES.find(m => m.id === movieId) || MOVIES[0];
+
+    // ─── LOAD MOVIE ───
+    document.title = movie.title + ' — KILL DILL';
+    document.getElementById('player-title').textContent = movie.title;
+    document.getElementById('player-desc').textContent = movie.description;
+    document.getElementById('player-year').textContent = movie.year;
+    document.getElementById('player-genre').textContent = movie.genre;
+    document.getElementById('player-duration').textContent = movie.duration;
+    document.getElementById('player-poster').src = movie.thumbnail;
+    document.getElementById('video-frame').src = `https://drive.google.com/file/d/${movie.driveId}/preview`;
+    document.getElementById('drive-link').href = `https://drive.google.com/file/d/${movie.driveId}/view?usp=sharing`;
+    document.getElementById('netmirror-link').href = `https://net22.cc/home#search=${encodeURIComponent(movie.title)}`;
+
+    document.getElementById('related-grid').innerHTML = MOVIES
+      .filter(m => m.id !== movieId)
+      .map(m => `
+        <a class="movie-card" href="player.html?id=${m.id}">
+          <div class="card-thumb">
+            <img src="${m.thumbnail}" alt="${m.title}" loading="lazy">
+            <div class="card-overlay"><div class="play-circle"><span>&#9654;</span></div></div>
+          </div>
+          <div class="card-info">
+            <h3>${m.title}</h3>
+            <p>${m.year} &bull; ${m.genre}</p>
+          </div>
+        </a>`).join('');
+
+    // ─── FIREBASE ───
+    firebase.initializeApp({
+      databaseURL: "https://killdill-6ce9f-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    });
+    const db = firebase.database();
+    const partyRef = db.ref('watchparty/movie_' + movie.id);
+    const membersRef = partyRef.child('members');
+    const chatRef = partyRef.child('chat');
+    const notifRef = partyRef.child('notification');
+
+    // ─── DAILY.CO CONFIG ───
+    const DAILY_API_KEY = '60953f9f0ff27248d15de41c0c6fa772387223cfc27d8648f7ddb6237ad5e261';
+    const ROOM_NAME = 'killdill-movie-' + movie.id;
+
+    let myName = null;
+    let inParty = false;
+    let roomUrl = null;
+    let chatListener = null;
+
+    // ─── CREATE DAILY ROOM ───
+    async function getOrCreateRoom() {
+      try {
+        const res = await fetch('https://api.daily.co/v1/rooms/' + ROOM_NAME, {
+          method: 'GET',
+          headers: { Authorization: 'Bearer ' + DAILY_API_KEY }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data.url;
+        }
+        // Room doesn't exist, create it
+        const create = await fetch('https://api.daily.co/v1/rooms', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + DAILY_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: ROOM_NAME,
+            properties: {
+              enable_chat: true,
+              enable_knocking: false,
+              start_video_off: false,
+              start_audio_off: false,
+              max_participants: 2
+            }
+          })
+        });
+        const room = await create.json();
+        return room.url;
+      } catch (e) {
+        console.error('Daily room error:', e);
+        return null;
+      }
+    }
+
+    // ─── WATCH PARTY ───
+    function startParty() {
+      document.getElementById('name-picker').classList.add('show');
+      document.getElementById('start-btn').style.display = 'none';
+    }
+
+    async function pickName(name) {
+      myName = name;
+      inParty = true;
+
+      document.getElementById('party-status').classList.add('show');
+      document.getElementById('status-dot').className = 'status-dot waiting';
+      document.getElementById('status-text').textContent = 'Setting up your watch party room...';
+
+      // Create/get Daily room
+      roomUrl = await getOrCreateRoom();
+
+      if (roomUrl) {
+        // Load video call
+        document.getElementById('call-frame').src = roomUrl + '?userName=' + (name === 'KILL' ? '🔪+KILL' : '🩷+DILL');
+        document.getElementById('call-container').classList.add('show');
+      }
+
+      // Join Firebase
+      membersRef.child(name).set({ name, online: true, joinedAt: Date.now() });
+      membersRef.child(name).onDisconnect().remove();
+
+      document.getElementById('chat-container').classList.add('show');
+      document.getElementById('sync-controls').classList.add('show');
+
+      // Notify other person
+      notifRef.set({ from: name, movieTitle: movie.title, t: Date.now() });
+
+      // Listen for members
+      membersRef.on('value', snap => {
+        const members = snap.val() || {};
+        const keys = Object.keys(members);
+        updateMembersUI(members);
+        if (keys.length >= 2) {
+          document.getElementById('status-dot').className = 'status-dot connected';
+          document.getElementById('status-text').textContent = '🎉 Both connected! Enjoy the movie together!';
+        } else {
+          document.getElementById('status-dot').className = 'status-dot waiting';
+          const other = name === 'KILL' ? '🩷 DILL' : '🔪 KILL';
+          document.getElementById('status-text').textContent = `Waiting for ${other} to join...`;
+        }
+      });
+
+      // Listen for new members joining
+      membersRef.on('child_added', snap => {
+        const data = snap.val();
+        if (data && data.name !== myName) {
+          addSystemMsg(`${data.name === 'KILL' ? '🔪 KILL' : '🩷 DILL'} joined the party!`);
+          showToastSimple(`${data.name === 'KILL' ? '🔪 KILL' : '🩷 DILL'} joined! 🎉`);
+        }
+      });
+
+      membersRef.on('child_removed', snap => {
+        const data = snap.val();
+        if (data) addSystemMsg(`${data.name === 'KILL' ? '🔪 KILL' : '🩷 DILL'} left the party.`);
+      });
+
+      // Chat listener
+      chatListener = chatRef.on('child_added', snap => {
+        const msg = snap.val();
+        if (msg) appendChat(msg.name, msg.text);
+      });
+
+      document.getElementById('status-text').textContent = `You joined as ${name === 'KILL' ? '🔪 KILL' : '🩷 DILL'} — waiting for the other person...`;
+    }
+
+    function updateMembersUI(members) {
+      const el = document.getElementById('party-members');
+      const keys = Object.keys(members);
+      if (!keys.length) { el.classList.remove('show'); return; }
+      el.classList.add('show');
+      el.innerHTML = keys.map(k => {
+        const m = members[k];
+        return `<div class="member-tag ${m.name === 'KILL' ? 'kill' : 'dill'}">
+          <div class="online-dot"></div>
+          ${m.name === 'KILL' ? '🔪' : '🩷'} ${m.name}
+        </div>`;
+      }).join('');
+    }
+
+    function openNetmirrorParty() {
+      const url = `https://net22.cc/home#search=${encodeURIComponent(movie.title)}`;
+      // Signal other person
+      partyRef.child('netmirror').set({ url, by: myName, t: Date.now() });
+      window.open(url, '_blank');
+      addSystemMsg(`🌐 ${myName} opened NetMirror — open it on your end too!`);
+    }
+
+    // Listen for NetMirror signal from other person
+    partyRef.child('netmirror').on('value', snap => {
+      const data = snap.val();
+      if (data && inParty && data.by !== myName) {
+        showToast(
+          `🌐 ${data.by === 'KILL' ? '🔪 KILL' : '🩷 DILL'} opened NetMirror!`,
+          `Click to open NetMirror and watch together`,
+          true,
+          data.url
+        );
+      }
+    });
+
+    function leaveParty() {
+      if (!myName) return;
+      membersRef.child(myName).remove();
+      if (chatListener) chatRef.off('child_added', chatListener);
+      membersRef.off(); notifRef.off();
+      inParty = false; myName = null; roomUrl = null;
+      document.getElementById('call-frame').src = '';
+      document.getElementById('call-container').classList.remove('show');
+      document.getElementById('chat-container').classList.remove('show');
+      document.getElementById('party-status').classList.remove('show');
+      document.getElementById('party-members').classList.remove('show');
+      document.getElementById('sync-controls').classList.remove('show');
+      document.getElementById('name-picker').classList.remove('show');
+      document.getElementById('start-btn').style.display = '';
+      document.getElementById('chat-messages').innerHTML = '<div class="chat-msg system">Chat starts when both join 💬</div>';
+    }
+
+    // ─── CHAT ───
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text || !myName) return;
+      chatRef.push({ name: myName, text, t: Date.now() });
+      input.value = '';
+    }
+
+    function appendChat(name, text) {
+      const el = document.createElement('div');
+      el.className = `chat-msg ${name === 'KILL' ? 'kill' : 'dill'}`;
+      el.innerHTML = `<span class="sender">${name === 'KILL' ? '🔪' : '🩷'} ${name}</span>${text}`;
+      const box = document.getElementById('chat-messages');
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function addSystemMsg(text) {
+      const el = document.createElement('div');
+      el.className = 'chat-msg system';
+      el.textContent = text;
+      const box = document.getElementById('chat-messages');
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ─── TOAST ───
+    let toastUrl = null;
+
+    function showToast(title, msg, hasJoin = false, url = null) {
+      toastUrl = url;
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-msg').textContent = msg;
+      document.querySelector('.toast-join').style.display = hasJoin ? 'block' : 'none';
+      document.getElementById('toast').classList.add('show');
+      if (!hasJoin) setTimeout(hideToast, 3000);
+    }
+
+    function showToastSimple(title) {
+      showToast(title, '', false);
+    }
+
+    function hideToast() {
+      document.getElementById('toast').classList.remove('show');
+      toastUrl = null;
+    }
+
+    function joinFromToast() {
+      hideToast();
+      if (toastUrl) { window.open(toastUrl, '_blank'); return; }
+      if (!inParty) {
+        document.getElementById('name-picker').classList.add('show');
+        document.getElementById('start-btn').style.display = 'none';
+      }
+    }
+
+    // ─── LISTEN FOR NOTIFICATION (for DILL) ───
+    notifRef.on('value', snap => {
+      const n = snap.val();
+      if (n && !inParty) {
+        const from = n.from === 'KILL' ? '🔪 KILL' : '🩷 DILL';
+        showToast(`${from} wants to watch!`, `"${n.movieTitle}" — join the watch party!`, true);
+      }
+    });
+
+  </script>
+
+</body>
+</html>
